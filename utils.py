@@ -1,14 +1,16 @@
 """
-Utility functions for PDF processing and text chunking
+Optimized utility functions for enhanced performance and accuracy
 """
 import os
-from typing import Dict, Any
 import requests
 import fitz  # PyMuPDF
 from typing import List, Tuple
 import tempfile
 from urllib.parse import urlparse
 import re
+import logging
+
+logger = logging.getLogger(__name__)
 
 class PDFProcessor:
     def __init__(self):
@@ -40,7 +42,7 @@ class PDFProcessor:
             # Check content type
             content_type = response.headers.get('content-type', '').lower()
             if 'pdf' not in content_type:
-                print(f"Warning: Content type is {content_type}, proceeding anyway")
+                logger.warning(f"Content type is {content_type}, proceeding anyway")
             
             # Save to temporary file
             with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as temp_file:
@@ -113,20 +115,115 @@ class PDFProcessor:
         return text.strip()
 
 class TextChunker:
-    def __init__(self, chunk_size: int = 1000, overlap: int = 200):
+    def __init__(self, chunk_size: int = 800, overlap: int = 150):
         """
-        Initialize text chunker
+        Initialize optimized text chunker for better token efficiency
         
         Args:
-            chunk_size: Maximum size of each chunk in characters
-            overlap: Overlap between consecutive chunks in characters
+            chunk_size: Reduced size for better LLM processing (800 chars)
+            overlap: Optimized overlap for context preservation (150 chars)
         """
         self.chunk_size = chunk_size
         self.overlap = overlap
     
-    def split_text(self, text: str) -> List[str]:
+    def split_text_optimized(self, text: str) -> List[str]:
         """
-        Split text into overlapping chunks
+        Optimized text splitting with intelligent boundary detection
+        """
+        try:
+            if not text or not text.strip():
+                return []
+            
+            # Pre-process text for better chunking
+            text = self._preprocess_text(text)
+            
+            chunks = []
+            start = 0
+            
+            while start < len(text):
+                # Calculate end position
+                end = start + self.chunk_size
+                
+                # If this is not the last chunk, find optimal boundary
+                if end < len(text):
+                    # Try paragraph boundary first
+                    paragraph_end = self._find_paragraph_boundary(text, start, end)
+                    if paragraph_end > start:
+                        end = paragraph_end
+                    else:
+                        # Fall back to sentence boundary
+                        sentence_end = self._find_sentence_boundary(text, end - 100, end)
+                        if sentence_end > start:
+                            end = sentence_end
+                
+                # Extract chunk
+                chunk = text[start:end].strip()
+                
+                if chunk and len(chunk) > 50:  # Filter out very short chunks
+                    # Post-process chunk
+                    chunk = self._postprocess_chunk(chunk)
+                    chunks.append(chunk)
+                
+                # Move start position (with overlap)
+                start = end - self.overlap if end > self.overlap else end
+                
+                # Break if we've reached the end
+                if start >= len(text):
+                    break
+            
+            logger.info(f"Split text into {len(chunks)} optimized chunks")
+            return chunks
+            
+        except Exception as e:
+            raise Exception(f"Error splitting text: {str(e)}")
+    
+    def _preprocess_text(self, text: str) -> str:
+        """Preprocess text for better chunking"""
+        # Remove excessive whitespace but preserve paragraph breaks
+        text = re.sub(r' +', ' ', text)
+        text = re.sub(r'\n\s*\n\s*\n+', '\n\n', text)
+        
+        # Fix common PDF extraction issues
+        text = re.sub(r'([a-z])([A-Z])', r'\1 \2', text)  # Add space between camelCase
+        text = re.sub(r'(\.)([A-Z])', r'\1 \2', text)     # Add space after period
+        
+        return text.strip()
+    
+    def _postprocess_chunk(self, chunk: str) -> str:
+        """Post-process chunk for better quality"""
+        # Remove incomplete sentences at the beginning
+        sentences = chunk.split('.')
+        if len(sentences) > 1 and len(sentences[0]) < 20:
+            chunk = '.'.join(sentences[1:])
+        
+        # Ensure chunk ends with complete sentence
+        if not chunk.endswith(('.', '!', '?', ':')):
+            last_sentence_end = max(
+                chunk.rfind('.'),
+                chunk.rfind('!'),
+                chunk.rfind('?'),
+                chunk.rfind(':')
+            )
+            if last_sentence_end > len(chunk) * 0.7:  # If we can keep most of the chunk
+                chunk = chunk[:last_sentence_end + 1]
+        
+        return chunk.strip()
+    
+    def _find_paragraph_boundary(self, text: str, start: int, end: int) -> int:
+        """Find paragraph boundary within range"""
+        # Look for double newlines (paragraph breaks)
+        for i in range(end - 1, start - 1, -1):
+            if i < len(text) - 1 and text[i:i+2] == '\n\n':
+                return i + 2
+        return end
+    
+    def split_text(self, text: str) -> List[str]:
+        """Backward compatibility method"""
+        return self.split_text_optimized(text)
+    
+    def split_text_legacy(self, text: str) -> List[str]:
+        """
+        Legacy text splitting method
         """
         try:
             if not text or not text.strip():
@@ -159,7 +256,7 @@ class TextChunker:
                 if start >= len(text):
                     break
             
-            print(f"Split text into {len(chunks)} chunks")
+            logger.info(f"Split text into {len(chunks)} chunks")
             return chunks
             
         except Exception as e:
@@ -184,13 +281,14 @@ class ConfigValidator:
     """Validate environment configuration"""
     
     @staticmethod
-    def validate_env_vars() -> Dict[str, Any]:
+    def validate_env_vars():
         """Validate all required environment variables"""
         required_vars = {
             "GROQ_API_KEY": "Groq API key for language model",
             "PINECONE_API_KEY": "Pinecone API key for vector database",
             "PINECONE_ENVIRONMENT": "Pinecone environment",
-            "PINECONE_INDEX_NAME": "Pinecone index name"
+            "PINECONE_INDEX_NAME": "Pinecone index name",
+            "BEARER_TOKEN": "Bearer token for API authentication"
         }
         
         missing_vars = []
@@ -205,5 +303,6 @@ class ConfigValidator:
             "groq_api_key": os.getenv("GROQ_API_KEY"),
             "pinecone_api_key": os.getenv("PINECONE_API_KEY"),
             "pinecone_environment": os.getenv("PINECONE_ENVIRONMENT"),
-            "pinecone_index_name": os.getenv("PINECONE_INDEX_NAME")
+            "pinecone_index_name": os.getenv("PINECONE_INDEX_NAME"),
+            "bearer_token": os.getenv("BEARER_TOKEN")
         }

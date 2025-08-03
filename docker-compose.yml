@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  pdf-qa-api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - PINECONE_API_KEY=${PINECONE_API_KEY}
+      - PINECONE_ENVIRONMENT=${PINECONE_ENVIRONMENT}
+      - PINECONE_INDEX_NAME=${PINECONE_INDEX_NAME}
+      - CO_API_KEY=${CO_API_KEY}
+      - BEARER_TOKEN=${BEARER_TOKEN}
+    volumes:
+      - ./:/app
+    working_dir: /app
+    command: python main.py

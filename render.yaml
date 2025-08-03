@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: fastapi-hackrx
+    env: docker
+    plan: free
+    repo: https://github.com/your-username/your-repo
+    branch: main
+    rootDir: .
+    dockerfilePath: ./Dockerfile
+    autoDeploy: true
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false  # Set this in Render dashboard

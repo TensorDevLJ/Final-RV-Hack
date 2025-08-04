@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 class VectorStore:
     def __init__(self):
-        self.model_path = "./models/all-mpnet-base-v2"
+        self.model_path = "all-mpnet-base-v"
 
         if not os.path.exists(self.model_path):
             os.makedirs("models", exist_ok=True)

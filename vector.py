@@ -14,7 +14,19 @@ logger = logging.getLogger(__name__)
 
 class VectorStore:
     def __init__(self):
-        self.embedding_model = SentenceTransformer("./models/all-mpnet-base-v2")
+        self.model_path = "./models/all-mpnet-base-v2"
+
+        if not os.path.exists(self.model_path):
+            os.makedirs("models", exist_ok=True)
+            print("Downloading model from HuggingFace...")
+            model = SentenceTransformer("all-mpnet-base-v2")
+            model.save(self.model_path)
+            self.embedding_model = model
+        else:
+            print("Loading model from local path...")
+            self.embedding_model = SentenceTransformer(self.model_path)
+
+        self.embedding_dimension = 768
         self.embedding_dimension = 768  # Update this if using a different model
 
         self.index_name = os.getenv("PINECONE_INDEX_NAME", "my-index")

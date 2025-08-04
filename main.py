@@ -150,6 +150,32 @@ async def process_pdf_qa(
         logger.error(f"Processing error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Processing error: {str(e)}")
 
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from routes import router as hackrx_router
+from vector import VectorStore
+from llm import LLMClient
+
+app = FastAPI()
+
+# Middleware for CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Set to specific domain in production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Initialize core components
+llm_client = LLMClient()
+vector_store = VectorStore()
+
+# Register router
+app.include_router(hackrx_router, prefix="/hackrx")
+
+# --- Health and Root Endpoints ---
+
 @app.get("/api/v1/health")
 async def health_check():
     """Enhanced health check with component status"""
@@ -176,8 +202,8 @@ async def health_check():
         }
 
 @app.get("/health")
-async def health_check():
-    """Health check endpoint"""
+async def simple_health():
+    """Simple health check endpoint"""
     return {"status": "healthy", "version": "1.0.0"}
 
 @app.get("/")
@@ -191,6 +217,8 @@ async def root():
             "health": "/api/v1/health"
         }
     }
+
+
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))

@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 class VectorStore:
     def __init__(self):
-        self.embedding_model = SentenceTransformer("all-mpnet-base-v2")
+        self.embedding_model = SentenceTransformer("./models/all-mpnet-base-v2")
         self.embedding_dimension = 768  # Update this if using a different model
 
         self.index_name = os.getenv("PINECONE_INDEX_NAME", "my-index")
